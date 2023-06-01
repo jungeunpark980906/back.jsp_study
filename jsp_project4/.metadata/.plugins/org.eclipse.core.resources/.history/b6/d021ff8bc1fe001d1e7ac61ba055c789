@@ -1,0 +1,66 @@
+package service;
+
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.mysql.cj.log.Log;
+
+import domain.BoardVO;
+import domain.MemberVO;
+import repository.BoardDAO;
+import repository.BoardDAOImpl;
+import repository.MemberDAO;
+import repository.MemberDAOImpl;
+
+public class BoardServiceImpl implements BoardService {
+
+	private static final Logger log = LoggerFactory.getLogger(BoardService.class);
+	   
+	   private BoardDAO bdao;
+	   
+	   public BoardServiceImpl() {
+	      bdao = new BoardDAOImpl();
+	   }
+	
+        @Override
+        public int insert(BoardVO bvo) {
+            log.info(">>> insert service 진입");
+            return bdao.insert(bvo);
+        } 
+
+		@Override
+		public List<BoardVO> list() {
+			log.info(">>> list service 진입");
+			return bdao.selectList();
+		}
+
+		@Override
+		public BoardVO detail(int bno) {
+			log.info(">>> detail service 진입");
+			int isOk = bdao.updateCount(bno);
+			try {
+				Thread.sleep(isOk);
+			} catch (Exception e) {
+				
+			}
+			return bdao.selectOne(bno);
+		}
+
+		@Override
+		public BoardVO modify_rdy(int bno) {
+			// 게시판 수정(수정전 뿌리기)
+			log.info(">>> modify_rdy service 진입");
+			return bdao.select(bno);
+		}
+
+		@Override
+		public int modify(BoardVO bvo) {
+			// 게시판 수정(DB에 update)
+			log.info(">>> modify_rdy service 진입");
+			return bdao.update(bvo);
+		}
+ 
+		
+} 

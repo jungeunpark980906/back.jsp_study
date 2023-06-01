@@ -1,0 +1,46 @@
+//화면에서 등록한 댓글내용을 컨트롤러로 전송 
+async function postCommentToServer(cmtData){
+	try{
+		const url = "/cmt/post";
+		const config = {
+			method: 'post',
+			headers:{
+				'content-Type': 'application/json; charset=utf-8'
+			},
+			body:JSON.stringify(cmtData)
+		};
+		const resp = await fetch(url, config); 
+		const result = await resp.text(); 
+		return result;
+	}catch(error){
+		console.log(error);
+	}
+	
+}
+
+
+
+//cmtData 만들기
+document.getElementById('cmtAddBtn').addEventListener('click',()=>{
+	const cmtText = document.getElementById('cmtText').value;
+	console.log(cmtText);
+	
+	if(cmtText == null || cmtText == ""){ 
+		alert("댓글을 입력해라");
+		return false;
+	}else{
+		let cmtData = { 
+			bno : bnoVal,
+			writer : document.getElementById('cmtWriter').value,
+			content : cmtText 
+		};
+		postCommentToServer(cmtData).then(result=>{
+			if(result > 0){
+				alert('댓글이 등록되었동');
+				document.getElementById('cmtText').value=""; 
+			}
+		});
+		
+	}
+	
+}) 

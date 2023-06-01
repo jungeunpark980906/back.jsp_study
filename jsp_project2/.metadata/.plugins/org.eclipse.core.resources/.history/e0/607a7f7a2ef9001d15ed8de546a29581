@@ -1,0 +1,10 @@
+package handle;
+
+public class PagingHandler {
+
+	private int startPage; //현재화면에서 보여지는 시작 페이지네이션 번호
+	private int endPage; //현재화면에서 보여지는 끝 페이지네이션 번호
+	private boolean prev, next; //이전, 다음버튼의 존재여부 (첫페이지에는 이전없음/마지막페이지에는 다음없음)
+	
+	
+}

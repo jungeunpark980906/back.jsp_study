@@ -1,0 +1,19 @@
+package repository;
+
+import java.util.List;
+
+import domain.productVO;
+
+public interface DAO {
+
+	int insert(productVO pvo);
+
+	List<productVO> selectList();
+
+	productVO selectOne(int pno);
+
+	int update(productVO pvo);
+
+	int delete(int pno2);
+
+}

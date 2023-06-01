@@ -1,0 +1,91 @@
+package repository;
+
+import java.util.List;
+
+import org.apache.ibatis.session.SqlSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import domain.BoardVO;
+import orm.DatabaseBuilder;
+import service.BoardService;
+
+public class BoardDAOImpl implements BoardDAO {
+
+	private static final Logger log = LoggerFactory.getLogger(BoardDAO.class);
+	private SqlSession sql;
+
+	private String BS = "boardMapper.";
+	
+	public BoardDAOImpl() {
+		new DatabaseBuilder(); 
+		sql = DatabaseBuilder.getFactory().openSession(); 
+	}
+	@Override
+	public int insert(BoardVO bvo) {
+		//게시글 추가
+		log.info(">>> insert DAO 진입");
+		int isOk = sql.insert(BS+"in", bvo); 
+		if(isOk > 0 ) {
+			sql.commit(); 
+		} 
+		return isOk;
+	}
+	@Override
+	public List<BoardVO> selectList() {
+		//게시글 전체출력
+		log.info(">>> selectList DAO 진입");
+		List<BoardVO> list = sql.selectList(BS+"list");
+		return list;
+	}
+	@Override
+	public int updateCount(int bno) {
+		//조회수
+		log.info(">>> updateCount DAO 진입");
+		int isOk= sql.update(BS+"updateCount",bno);
+		if(isOk > 0 ) {
+			sql.commit(); 
+		} 
+		return isOk;
+	}
+	@Override
+	public BoardVO selectOne(int bno) {
+		// 상세보기
+		log.info(">>> selectOne DAO 진입");
+		BoardVO bvo = sql.selectOne(BS+"selectOne", bno);
+		return bvo;
+	}
+	@Override
+	public BoardVO select(int bno) {
+		// 수정(뿌리기)
+		log.info(">>> select DAO 진입");
+		BoardVO bvo = sql.selectOne(BS+"select", bno);
+		return bvo;
+	}
+	@Override
+	public int update(BoardVO bvo) {
+		// 수정
+		log.info(">>> update DAO 진입");
+		int isOk = sql.update(BS+"update", bvo); 
+		if(isOk > 0 ) {
+			sql.commit(); 
+		} 
+		return isOk;
+	}
+	@Override
+	public int delete(int bno) {
+		// 삭제
+		log.info(">>> delete DAO 진입");
+		int isOk = sql.delete(BS+"del", bno); 
+		if(isOk > 0 ) {
+			sql.commit(); 
+		} 
+		return isOk;
+		
+	}
+	
+	
+	
+	
+	
+}

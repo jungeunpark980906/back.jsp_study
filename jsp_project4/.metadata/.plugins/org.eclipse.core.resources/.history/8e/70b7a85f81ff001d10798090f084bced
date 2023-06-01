@@ -1,0 +1,276 @@
+package controller;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import domain.BoardVO;
+import domain.PagingVO;
+import handle.PagingHandler;
+import net.coobird.thumbnailator.Thumbnails;
+import service.BoardService;
+import service.BoardServiceImpl;
+
+
+@WebServlet("/brd/*")
+public class BoardController extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	private static final Logger log = LoggerFactory.getLogger(BoardController.class);
+	private RequestDispatcher rdp;
+	private String destPage; 
+	private int isOk;
+	private BoardService bsv;
+	private String savePath;
+	private final String UTF8 = "UTF-8";
+	
+
+    public BoardController() {
+    	bsv = new BoardServiceImpl();
+    	
+    }
+
+
+	protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		request.setCharacterEncoding("utf-8");
+		response.setCharacterEncoding("utf-8"); 
+		response.setContentType("text/html; charset=utf-8");
+		
+		String uri = request.getRequestURI();
+		log.info(">>uri: " +uri);
+		String path = uri.substring(uri.lastIndexOf("/")+1);
+		log.info(">>path: " +path);
+		
+		switch(path) {
+		//게시글 작성
+		case "register":
+			destPage = "/board/register.jsp";
+			break;
+		case "insert":
+			try {
+				
+				//파일을 업로드할 물리적인 경로를 설정
+				savePath = getServletContext().getRealPath("/_fileUpload");
+				log.info(">>>파일 저장 경로: " + savePath);
+				//실제경로를 가져와! "webapp안의_fileUplode"
+				
+				File fileDir = new File(savePath); //File은 java.io에서 import
+				//파일의 저장위치를 담고 있는 객체생성
+				
+				DiskFileItemFactory fileItemFactory = new DiskFileItemFactory(); 
+				//아이템을 담는,,?
+				fileItemFactory.setRepository(fileDir);
+				//파일의 저장위치를 담고 있는 객체를 저장하기
+				fileItemFactory.setSizeThreshold(2*1024*1024);
+				//파일 저장을 위한 임시 메모리의 용량을 설정하기 : byte단위 => 2MB = 2*1024*1024
+				
+				BoardVO bvo = new BoardVO();
+				
+				ServletFileUpload fileUpload = new ServletFileUpload(fileItemFactory);
+				//multipart/form-data형식으로 넘어온 request객체를 다루기 쉽게 변환해주는 역할
+				
+				List<FileItem> itemList = fileUpload.parseRequest(request);
+				//request객체를 FileItem의 리스트로 담아
+				for(FileItem item : itemList) {
+					//title = __, writer=__..이런식으로 key=velue 형태롤 들어가 있음
+					switch(item.getFieldName()) { //key값을 가져오는 역할
+					case "title":
+						bvo.setTitle(item.getString(UTF8)); 
+						//가져올때는 인코딩 형식을 담아서 변환해 가져와야 안깨짐!
+						//UTF8( 위에 "UTF-8"을 저장해놓은 변수) 또는 "UTF-8"로 작성가능 
+						break;
+					case "writer": 
+						bvo.setWriter(item.getString(UTF8));
+						break;
+					case "content":
+						bvo.setContent(item.getString(UTF8));
+						break;
+					case "image_file":
+						//먼저 이미지가 있는지 없는지부터 체크 
+						if(item.getSize() > 0) { //데이터의 크기로 유무확인 (size) //이미지 파일이 있는 경우
+							String fileName = item.getName().substring(item.getName().lastIndexOf("/")+1);
+							log.info(">>>fileName 시간넣기 전 : " + fileName); //cat.jpg
+							//.getName() : 경로를 포함한 파일의 이름 (___.___/cat.jpg) -> 마지막 cat.jpg만 가져오기
+							
+							fileName = System.currentTimeMillis()+"_"+fileName; 
+							log.info(">>>fileName 시간넣은 후 : " + fileName);
+							//파일 이름 앞에 _저장시간넣어주기
+							
+							File uploadFilePath = new File(fileDir+File.separator+fileName);
+							log.info(">>>실제 업로드하는 파일의 경로: "+ uploadFilePath);
+							
+							try {
+								item.write(uploadFilePath); //자바객체를 디스크에 저장
+								bvo.setImage_file(fileName);
+								
+								//썸네일 작업 : 리스트페이지에서 트래픽 과다사용을 막기위해
+								Thumbnails.of(uploadFilePath).size(75, 75)
+								.toFile(new File(fileDir+File.separator+"th_"+fileName));
+								
+							} catch (Exception e) {
+								log.info("파일 저장 오류 발생! file writer on disk fail");
+								e.printStackTrace();
+							}							
+						}
+						break;
+					}
+				}		
+				isOk = bsv.insert(bvo);
+				log.info(">>> insert " + (isOk > 0 ? "성공" : "실패"));
+				
+			} catch (Exception e) {
+				log.info("controller오류");
+				e.printStackTrace();
+			}
+			destPage = "page"; 
+			break;
+		
+					
+		//게시글 전체 출력
+		case "list":
+			try {
+				List<BoardVO> list = new ArrayList<>();
+				list = bsv.list();
+				request.setAttribute("list", list);
+				
+			} catch (Exception e) {
+				log.info("controller error!");
+				e.printStackTrace();
+			}
+			destPage = "/brd/page";
+			break;
+		
+		//게시글 상세보기
+		case "detail":
+			try {
+				int bno = Integer.parseInt(request.getParameter("bno"));
+				BoardVO bvo = new BoardVO();
+				request.setAttribute("bvo", bsv.detail(bno));
+					
+			} catch (Exception e) {
+				log.info("controller error!");
+				e.printStackTrace();
+			}
+			
+			destPage = "/board/detail.jsp";
+			break;
+		
+		//게시글 수정
+		case "modify_rdy":
+			try {
+				int bno = Integer.parseInt(request.getParameter("bno"));
+				BoardVO bvo = new BoardVO();
+				request.setAttribute("bvo", bsv.modify_rdy(bno));
+			
+			} catch (Exception e) {
+				log.info("controller error!");
+				e.printStackTrace();
+			}
+			
+			destPage = "/board/modify.jsp";
+			break;
+			
+		case "modify":	
+			try {
+				int bno = Integer.parseInt(request.getParameter("bno"));
+				String title = request.getParameter("title");
+				String content = request.getParameter("content");
+				log.info(title);
+				
+				BoardVO bvo = new BoardVO(bno, title, content);
+						
+				isOk = bsv.modify(bvo);
+				log.info(">>> modify :" + (isOk > 0 ? "성공" : "실패"));
+				
+			} catch (Exception e) {
+				log.info("controller error!");
+				e.printStackTrace();
+			}
+			
+			destPage="/brd/page";
+			break;
+		
+		//게시글 삭제
+		case "remove":
+			int bno = Integer.parseInt(request.getParameter("bno"));
+			isOk = bsv.remove(bno);
+			log.info(">>> remove : " + (isOk > 0 ? "성공" : "실패"));
+
+			destPage="/brd/page";
+			break;
+		
+		//게시글 출력 (마지막)
+		case "page":
+			try {
+				int pageNo = 1;
+				int qty = 10;
+				
+				String type ="";
+				String keyword="";
+				
+				if(request.getParameter("type") != null) {
+					type = request.getParameter("type");
+					keyword = request.getParameter("keyword");
+					log.info(">>> type : " + type + "/  >>> ketword: " + keyword);
+					
+				}
+				
+				
+				if(request.getParameter("pageNo") != null) {
+					pageNo = Integer.parseInt(request.getParameter("pageNo")); 
+					qty = Integer.parseInt(request.getParameter("qty")); 
+				}
+				PagingVO pgvo = new PagingVO(pageNo, qty);
+				
+				pgvo.setType(type);
+				pgvo.setKeyword(keyword);
+				log.info(">>> pgvo set설정확인: "+pgvo.toString());
+				
+				int totCount = bsv.getTotal(pgvo);
+				log.info("전체페이지의 수: "+totCount);
+				
+
+				List<BoardVO> list = bsv.getPageList(pgvo);
+				log.info(">>> list.size: "+ list.size());
+				
+				PagingHandler ph = new PagingHandler(pgvo, totCount);
+				request.setAttribute("pgh", ph);
+				request.setAttribute("list", list);
+				log.info("pageList 성공");	
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			destPage = "/board/list.jsp";
+			break;
+		}
+		
+		rdp = request.getRequestDispatcher(destPage);
+		rdp.forward(request, response);
+		
+	}
+
+
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		service(request, response);
+	}
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		service(request, response);
+	}
+
+}

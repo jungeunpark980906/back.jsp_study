@@ -1,0 +1,51 @@
+mysql -uroot -pezen
+
+create database jsp_project4;
+
+create user 'jsp_project4_user'@'localhost' identified by 'mysql';
+
+grant all privileges on jsp_project4.* to 'jsp_project4_user'@'localhost' with grant option;
+
+flush privileges;
+
+mysql -ujsp_project4_user -pmysql
+
+--2023.05.30
+--member
+create table member(
+id varchar(100) not null,
+password varchar(100) not null,
+email varchar(100) not null,
+age int,
+reg_date datetime default now(),
+last_login datetime default null,
+primary key(id)
+);
+
+--board
+create table board(
+bno int not null auto_increment,
+title varchar(100) not null,
+writer varchar(100) not null,
+content text,
+reg_date datetime default now(),
+primary key(bno)
+);
+
+alter table board add column count int default 0;
+
+--comment
+create table comment(
+cno int not null auto_increment,
+bno int default 0,
+writer varchar(100) default "unknown",
+content varchar(1000) not null,
+reg_date datetime default now(),
+primary key(cno)
+);
+
+--2023.05.31
+alter table board add image_file text;
+
+
+ 

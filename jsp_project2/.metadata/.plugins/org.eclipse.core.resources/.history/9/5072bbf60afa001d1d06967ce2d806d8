@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+  <mapper namespace="BoardMapper"> <!-- 처음에 namespace=BoardMapper를 꼭 적고 시작해야함! -->
+  	<insert id="reg" parameterType="bvo"> <!-- mvo = domain.mvo / mvo = mvo객체가 들어올꺼야! -->
+  		insert into board(title, writer, content) 
+  		values(#{title}, #{writer}, #{content})
+  	</insert>
+  	<select id="list" resultType="bvo">
+  		select * from board
+  	</select>
+  	<select id="selectOne" parameterType="int" resultType="bvo">
+  		select * from board where bno=#{bno}
+  	</select>
+  	<select id="select" parameterType="int" resultType="bvo">
+  		select * from board where bno=#{bno}
+  	</select>
+  	<update id="update" parameterType="bvo">
+  		update board set title=#{title}, content=#{content} where bno=#{bno}
+  	</update>
+  	<delete id="delete" parameterType="int" >
+  		delete from board where bno=#{bno}
+  	</delete>
+  	<update id="updateCount" parameterType="int">
+  		update board set count=count+1 where bno=#{bno}
+  	</update>
+  	
+  	<select id="pageList" parameterType="pgvo" resultType="bvo">
+  		select * from board order by bno desc limit #{pageStart}, #{qty}
+  	</select>
+  	
+  	<select id="cnt" resultType="int" parameterType="pgvo">
+  		select count(bno) from board where bno>0
+  		<include refid="search"></include>	<!-- sql id='search'를 붙여줘 -->
+  	</select>
+  	
+  	
+  	<sql id="search">
+  		<if test="type != null">
+  			<trim prefix="and (" suffix=")" prefixOverrides="OR"> 
+  			<!-- 조건이 있다면 and( 글자 ) 붙이기, and()괄호 안에 OR이 있다면 삭제 -->
+  				<foreach collection="typeToArray" item="type"> <!-- 내가 지금 돌릴 값 -->
+  					<trim prefix="OR"> <!-- 여러개가 있다면 OR -->
+  						<choose>
+  							<when test="type == 't'.toString()"> <!-- type의 값이 t라면 -->
+  								title like concat('%', #{keyword}, '%')
+  								 <!-- keyword가 앞뒤 어디든 와도 상관없어요 -->
+  							</when>
+  							<when test="type == 'w'.toString()"> 
+  								writer like concat('%', #{keyword}, '%')
+  							</when>
+  							<when test="type == 'c'.toString()"> 
+  								content like concat('%', #{keyword}, '%')
+  							</when>
+  						</choose>
+  					</trim>
+  				</foreach>
+  			</trim>
+  		</if>
+  	</sql>
+  	
+  	<select id="selectList" parameterType="pgvo" resultType="bvo">
+  		select a.bno, title, writer, reg_date, count from (
+  			select bno from board where bno>0
+  			<include refid="search"></include>
+  			order by bno desc
+  			limit #{pageStart}, #{qty}
+  		) a left join board b
+  		on a.bno = b.bno
+  	</select>
+  </mapper>
